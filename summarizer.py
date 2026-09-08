@@ -4,18 +4,20 @@ import json
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from dotenv import load_dotenv
-
+# .env faylini yuklash
 load_dotenv()
 
+# API URL va kalitini olish
 API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 API_URL = "https://api.anthropic.com/v1/messages"
 
-
+# Claude API-ga so'rov yuborish va xavfsiz javob qaytarish
 def call_claude(messages, system=None, max_tokens=500, model="claude-sonnet-5"):
     """Claude API-ga so'rov yuborish va xavfsiz javob qaytarish"""
     if not API_KEY:
         raise RuntimeError("ANTHROPIC_API_KEY o'rnatilmagan!")
 
+    # So'rov payloadini tayyorlash
     payload = {
         "model": model,
         "max_tokens": max_tokens,
@@ -30,6 +32,7 @@ def call_claude(messages, system=None, max_tokens=500, model="claude-sonnet-5"):
         "anthropic-version": "2023-06-01",
     }
 
+    # So'rov yuborish
     request = Request(
         API_URL,
         data=json.dumps(payload).encode(),
@@ -39,8 +42,10 @@ def call_claude(messages, system=None, max_tokens=500, model="claude-sonnet-5"):
 
     try:
         with urlopen(request) as response:
+            # Javobni o'qish va JSON formatida parse qilish
             data = json.loads(response.read().decode())
     except HTTPError as e:
+        # BU MUHIM QISM — haqiqiy xato matnni o'qish
         error_body = e.read().decode()
         raise RuntimeError(f"HTTP {e.code}: {error_body}")
     except URLError as e:
@@ -55,9 +60,10 @@ def call_claude(messages, system=None, max_tokens=500, model="claude-sonnet-5"):
 
     raise RuntimeError(f"Kutilmagan javob: {json.dumps(data, ensure_ascii=False)}")
 
-
+# Matnni qisqartirish uchun TextSummarizer Classi
 class TextSummarizer:
     def summarize(self, text):
+        # Claude API-ga so'rov yuborish uchun kerakli system va messages tayyorlash
         system = (
             "Siz O'zbek tilida matnlarni qisqarta oladigan mutaxassissiz. "
             "Asosiy fikrlarni 2-3 jumlada ifodalang."
@@ -67,7 +73,7 @@ class TextSummarizer:
         ]
         return call_claude(messages, system=system)
 
-
+# Test qilish uchun main block
 if __name__ == "__main__":
     summarizer = TextSummarizer()
 
