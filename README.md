@@ -130,12 +130,6 @@ text_parts = [block["text"] for block in content if block.get("type") == "text"]
 | `ModuleNotFoundError: dotenv` | Paket o'rnatilmagan | `pip install python-dotenv` |
 | `KeyError: 'text'` | `content[0]` da text yo'q edi | Yangilangan `extract_text` logikasidan foydalaning (type bo'yicha filtrlash) |
 
-## 📌 Keyingi Qadamlar
-
-- [ ] `asyncio` bilan bir nechta so'rovni parallel yuborish
-- [ ] Structured output uchun JSON schema validatsiyasi qo'shish
-- [ ] Hallucination tekshiruvi (confidence score) qo'shish
-- [ ] Natijalarni faylga (`.json`/`.csv`) saqlash
 
 ## 📚 Foydali Havolalar
 
