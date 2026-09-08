@@ -55,13 +55,20 @@ def call_claude(messages, system=None, max_tokens=1000, model="claude-sonnet-5")
         raise RuntimeError(f"Ulanish xatosi: {e.reason}")
 
     # Xavfsiz text ajratib olish
-    if "content" in data and len(data["content"]) > 0:
-        block = data["content"][1]
-        if "text" in block:
-            return block["text"]
-        raise RuntimeError(f"Kutilmagan content turi: {block.get('type')}")
+    content = data.get("content", [])
+    
+    if not content:
+        raise RuntimeError(f"Bo'sh javob: {json.dumps(data, ensure_ascii=False)}")
+    # Agar content bo'sh bo'lmasa, text bloklarini ajratib olish
+    text_parts = [block["text"] for block in content if block.get("type") == "text"]
 
-    raise RuntimeError(f"Kutilmagan javob: {json.dumps(data, ensure_ascii=False)}")
+    if text_parts:
+        return "\n".join(text_parts)
+    
+    # Agar text blok topilmasa, mavjud blok turlarini ko'rsatish
+    block_types = [b.get("type") for b in content]
+    
+    raise RuntimeError(f"'text' blok topilmadi. Mavjud turlar: {block_types}")
 
 # QABot Classi asosiy logikani o'z ichiga oladi
 class QABot:
