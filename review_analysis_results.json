@@ -1,0 +1,76 @@
+[
+  {
+    "success": true,
+    "data": {
+      "sentiment": "Mixed",
+      "category": "Product Quality",
+      "confidence": 80,
+      "rating": 4,
+      "key_phrases": [
+        "ajoyib",
+        "Taomlar mazali",
+        "xizmat tez",
+        "narxi biroz qimmat"
+      ]
+    },
+    "validation_errors": []
+  },
+  {
+    "success": true,
+    "data": {
+      "sentiment": "Negative",
+      "category": "Delivery/Shipping",
+      "confidence": 85,
+      "rating": 1,
+      "key_phrases": [
+        "Notog'ri hizmat",
+        "kechiktirilgan buyurtma",
+        "Kuryer 2 soat kech keldi"
+      ]
+    },
+    "validation_errors": []
+  },
+  {
+    "success": true,
+    "data": {
+      "sentiment": "Mixed",
+      "category": "Product Quality",
+      "confidence": 85,
+      "rating": 3,
+      "key_phrases": [
+        "kamerasi super",
+        "batareya tez tugatiladi",
+        "3-4 soatga yetadi"
+      ]
+    },
+    "validation_errors": []
+  },
+  {
+    "success": true,
+    "data": {
+      "sentiment": "Positive",
+      "category": "General",
+      "confidence": 30,
+      "rating": 4,
+      "key_phrases": [
+        "Yaxshi"
+      ]
+    },
+    "validation_errors": []
+  },
+  {
+    "success": true,
+    "data": {
+      "sentiment": "Negative",
+      "category": "Product Quality",
+      "confidence": 80,
+      "rating": 1,
+      "key_phrases": [
+        "Mahsulot sinib keldi",
+        "qadoqlash yomon edi",
+        "Pulimni qaytarib berishlarini so'rayman"
+      ]
+    },
+    "validation_errors": []
+  }
+]
