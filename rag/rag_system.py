@@ -30,7 +30,7 @@ INDEX_DIR = Path("rag_index")
 
 
 # ---------------------------------------------------------------------------
-# 1. CLAUDE API CALL (avvalgi loyihadagi bilan bir xil pattern)
+# 1. CLAUDE API CALL
 # ---------------------------------------------------------------------------
 
 def call_claude(messages, system=None, max_tokens=800, model=MODEL):
