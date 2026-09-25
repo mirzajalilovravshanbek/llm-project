@@ -1,0 +1,38 @@
+KOMPANIYA HAQIDA MA'LUMOT
+
+TechNova — 2018-yilda tashkil topgan dasturiy ta'minot kompaniyasi. 
+Bosh ofis Toshkent shahrida joylashgan. Kompaniyada hozirda 85 nafar 
+xodim ishlaydi, shundan 60 tasi dasturchi, 15 tasi dizayner va 10 tasi 
+marketing bo'limida faoliyat yuritadi.
+
+MAHSULOTLAR
+
+Kompaniyaning asosiy mahsuloti — TaskFlow nomli loyiha boshqaruv 
+platformasi. TaskFlow 2020-yilda ishga tushirilgan va hozirda 
+50,000 dan ortiq faol foydalanuvchiga ega. Platforma uch xil 
+tarifga ega: Basic (bepul), Pro (oyiga $9), va Enterprise (individual narx).
+
+TaskFlow-ning asosiy funksiyalari:
+- Vazifalarni boshqarish va kanban board
+- Jamoa bilan real vaqtda hamkorlik
+- Vaqt kuzatuvi (time tracking)
+- Hisobotlar va analitika
+
+ISH VAQTI VA TARTIB
+
+Kompaniya dushanbadan jumagacha, soat 9:00 dan 18:00 gacha ishlaydi. 
+Tushlik tanaffusi 13:00 dan 14:00 gacha. Xodimlar haftada 2 kun 
+masofadan (remote) ishlash huquqiga ega.
+
+TA'TIL SIYOSATI
+
+Har bir to'liq stavkali xodim yiliga 24 ish kuni oddiy ta'tilga 
+va 10 kun kasallik varag'iga (sick leave) ega. Ta'til so'rovlari 
+kamida 2 hafta oldin bo'lim rahbariga yuborilishi kerak.
+
+INTERNSHIP DASTURI
+
+TechNova har yili yozda 3 oylik internship dasturini o'tkazadi. 
+Dastur davomida internlar AI/LLM fundamentals, prompt engineering 
+va RAG tizimlari bo'yicha amaliy loyihalar ustida ishlaydi. 
+Dastur oxirida eng yaxshi 3 nafar intern to'liq stavkaga taklif etiladi.
