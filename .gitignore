@@ -1,2 +1,4 @@
 .env
 __pycache__/
+chat_api/__pycache__/
+chat_api/chat.db

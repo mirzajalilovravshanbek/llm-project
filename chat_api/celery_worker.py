@@ -1,0 +1,89 @@
+# celery_worker.py
+# 9-10 hafta: Background jobs — Celery + Redis
+#
+# Worker'ni ishga tushirish (alohida terminalda):
+#   Linux/Mac : celery -A celery_worker:celery_app worker --loglevel=info
+#   Windows   : celery -A celery_worker:celery_app worker --loglevel=info --pool=solo
+#               (Windows'da --pool=solo majburiy, aks holda vazifalar ishlamaydi)
+#
+# Redis kerak (broker + natijalar ombori):
+#   Docker : docker run -d --name redis -p 6379:6379 redis
+#   WSL    : sudo apt install redis-server && sudo service redis-server start
+
+import os
+
+from celery import Celery
+
+import chat_core as core
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+
+celery_app = Celery("chat_tasks", broker=REDIS_URL, backend=REDIS_URL)
+celery_app.conf.update(
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
+    result_expires=3600,      # Natijalar Redis'da 1 soat saqlanadi
+    task_track_started=True,  # STARTED holatini ko'rsatish uchun
+)
+
+
+def redis_available(timeout=1):
+    """
+    Redis'ga tez ping. Redis o'chiq bo'lsa, Celery/kombu ~20 soniya qayta ulanishga
+    urinadi — API foydalanuvchini shuncha kuttirmasligi uchun avval shu yerda tekshiramiz.
+    """
+    try:
+        import redis
+
+        client = redis.Redis.from_url(
+            REDIS_URL, socket_connect_timeout=timeout, socket_timeout=timeout
+        )
+        return bool(client.ping())
+    except Exception:
+        return False
+
+MAX_TRANSCRIPT_CHARS = 30000
+
+
+def _is_transient(error_text):
+    """Qayta urinishga arziydigan xatolar: rate limit, server xatolari, tarmoq."""
+    return (
+        error_text.startswith("HTTP 429")
+        or error_text.startswith("HTTP 5")
+        or error_text.startswith("Ulanish xatosi")
+        or error_text.startswith("Stream uzildi")
+    )
+
+
+@celery_app.task(name="summarize_session", bind=True)
+def summarize_session(self, session_id):
+    """Suhbatni xulosalab, sessiya yozuviga saqlaydi."""
+    core.init_db()
+
+    history = core.get_history(session_id)
+    if not history:
+        return {"session_id": session_id, "summary": None, "note": "Suhbat bo'sh"}
+
+    transcript = "\n".join(f"{m['role']}: {m['content']}" for m in history)
+    if len(transcript) > MAX_TRANSCRIPT_CHARS:
+        transcript = transcript[-MAX_TRANSCRIPT_CHARS:]  # Eng oxirgi qismi
+
+    try:
+        summary = core.call_claude(
+            [{
+                "role": "user",
+                "content": "Quyidagi suhbatni 3-5 jumlada xulosalang. Asosiy mavzular va "
+                           f"kelishilgan narsalarni ko'rsating.\n\nSUHBAT:\n{transcript}",
+            }],
+            system="Siz suhbatlarni aniq va qisqa xulosalaydigan yordamchisiz.",
+            max_tokens=400,
+        )
+    except RuntimeError as e:
+        if _is_transient(str(e)):
+            # Vaqtinchalik xato: 5 soniyadan keyin qayta urinadi (maks. 3 marta)
+            raise self.retry(exc=e, countdown=5, max_retries=3)
+        raise  # Doimiy xato (masalan noto'g'ri API key) — qayta urinish befoyda
+
+    core.set_summary(session_id, summary)
+    return {"session_id": session_id, "summary": summary}
