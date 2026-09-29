@@ -220,6 +220,76 @@ Kompaniya nomi (Enter = 'Kompaniya'): TechNova
 Solishtiruv uchun LangChain ekvivalenti ko'rib chiqildi (`RecursiveCharacterTextSplitter`, `Chroma.from_documents` va h.k.). Internship davomida **qo'lda yozish tanlandi**, chunki bu har bir RAG bosqichini (chunking, embedding, retrieval, generation) chuqur tushunishga yordam beradi. Production loyihada LangChain/LlamaIndex'ga o'tish — endi "qora quti ichida nima borligini" bilgan holda — ancha oson bo'ladi.
 
 ---
+ 
+# 3-OY: AI ENGINEERING VA PRODUCTION
+ 
+## 9–10 Hafta: Backend Integration
+ 
+**Mavzular:** FastAPI, background jobs (Celery), streaming response.
+ 
+Bu bosqichgacha barcha skriptlar faqat terminalda ishladi. Endi AI'ni **HTTP API** orqali ochamiz — web/mobil ilova shu API'ga murojaat qilishi mumkin.
+ 
+### `chat_core.py` — Umumiy Modul
+ 
+- **SQLite** orqali suhbat tarixi (`sessions`, `messages` jadvallari)
+- `call_claude()` — oddiy (streaming'siz) chaqiruv
+- `stream_claude()` — **SSE** (Server-Sent Events) orqali token-token javob qaytaradigan generator
+- **Sliding window** — modelga har doim oxirgi 20 xabar yuboriladi (token/narxni cheklash uchun)
+### `chat_api.py` — FastAPI Ilovasi
+ 
+| Endpoint | Vazifasi |
+|---|---|
+| `POST /chat` | Oddiy chat — javob to'liq tayyor bo'lgach qaytadi |
+| `POST /chat/stream` | **Streaming chat** — javob bo'lak-bo'lak (SSE) keladi |
+| `GET /sessions`, `GET /sessions/{id}/history` | Suhbatlar ro'yxati va tarixi |
+| `DELETE /sessions/{id}` | Suhbatni o'chirish |
+| `POST /sessions/{id}/summarize` | Og'ir vazifani Celery navbatiga qo'yadi (`202` + `task_id`) |
+| `GET /tasks/{task_id}` | Celery vazifasi holati (`PENDING → SUCCESS`) |
+ 
+**Background Tasks (ikki xil daraja):**
+- **Yengil** (`BackgroundTasks`) — suhbat sarlavhasini avtomatik yaratish, javob yuborilgach fonda ishlaydi
+- **Og'ir** (`Celery`) — suhbatni xulosalash, alohida **worker** jarayonida, server bilan bir vaqtda emas
+```bash
+pip install fastapi uvicorn
+uvicorn chat_api:app --reload
+```
+ 
+Brauzerda **http://127.0.0.1:8000/docs** — Swagger orqali API'ni sinash mumkin.
+ 
+### `celery_worker.py` — Background Job (Redis/Docker Shart Emas)
+ 
+Celery odatda **Redis** kabi broker talab qiladi, lekin bu loyihada **avtomatik moslashuvchan** qilib yozilgan:
+ 
+| `.env`da `REDIS_URL` | Broker rejimi | Talab qilinadigan narsa |
+|---|---|---|
+| Yo'q (default) | **Fayl tizimi** (`celery_data/` papkasi) | Hech narsa — Docker/Redis kerak emas |
+| Bor | Redis | Docker yoki WSL orqali Redis server |
+ 
+```bash
+pip install celery
+celery -A celery_worker:celery_app worker --loglevel=info --pool=solo
+```
+ 
+> **Windows'da `--pool=solo` majburiy**, aks holda vazifalar ishlamaydi.
+ 
+### `test_client.py` — Sinash Uchun Terminal Client
+ 
+```bash
+python test_client.py
+```
+ 
+Buyruqlar: `/new` (yangi suhbat), `/history`, `/sessions`, `/exit`. Streaming javob **real vaqtda, so'zlab** ekranga chiqadi.
+ 
+### Sinovda Aniqlangan va Tuzatilgan Muammolar
+ 
+| Muammo | Sabab | Yechim |
+|---|---|---|
+| `ImportError: pywintypes` | `kombu` (Celery) fayl tizimi broker'i Windows'da `pywin32` talab qiladi | `pip install pywin32` |
+| `Port could not be cast to integer value as '\\llm-project\\...'` | `"file://" + Windows_yoli` noto'g'ri birlashtirilganda disk harfi (`E:\`) "host:port" deb xato talqin qilingan | `pathlib.Path(...).as_uri()` bilan to'g'ri URI formatlash |
+| Redis o'chiq bo'lsa `/summarize` 19 soniya kutardi | Celery avtomatik qayta ulanishga urinardi | So'rovdan oldin tezkor `broker_available()` tekshiruvi (endi ~3ms) |
+| `docker: 500 Internal Server Error` | Docker Desktop o'rnatilmagan/ishga tushmagan | Redis/Docker butunlay olib tashlandi — fayl tizimi broker default qilindi |
+ 
+---
 
 ## ❗ Tez-tez Uchraydigan Xatolar (Barcha Haftalar Bo'yicha)
 
@@ -233,6 +303,9 @@ Solishtiruv uchun LangChain ekvivalenti ko'rib chiqildi (`RecursiveCharacterText
 | `KeyError: 'text'` | `content[0]` da text yo'q edi (boshqa block turi) | `type == "text"` bo'yicha filtrlash (barcha skriptlarda tuzatilgan) |
 | `FileNotFoundError: "C:\...\notes.txt"` (qo'shtirnoq bilan) | Explorer'dan "Copy as path" qo'shtirnoq qo'shadi | `clean_path()` funksiyasi avtomatik tozalaydi |
 | Score past, lekin javob to'g'ri | Chunk hajmi katta, similarity "suyultirilgan" | Kichikroq/recursive chunking ishlating (`company_knowledge_bot.py`dagidek) |
+| `ImportError: pywintypes` (Celery) | Windows fayl tizimi broker'i `pywin32` talab qiladi | `pip install pywin32` |
+| Celery: `Port could not be cast to integer` | Windows yo'li (`E:\...`) `file://` bilan noto'g'ri birlashtirilgan | `pathlib.Path().as_uri()` ishlatilgan (tuzatilgan) |
+| `docker: 500 Internal Server Error` | Docker Desktop o'rnatilmagan/ishlamayapti | Kerak emas — `celery_worker.py` fayl tizimi broker'ini default qiladi |
 
 ---
 
@@ -242,6 +315,7 @@ Solishtiruv uchun LangChain ekvivalenti ko'rib chiqildi (`RecursiveCharacterText
 - [x] **3-4 hafta:** Role-based prompting, structured JSON output, hallucination guard, schema validation, self-correction
 - [x] **5-6 hafta:** Embedding (local, sentence-transformers), similarity search, FAISS va Chroma bilan vector DB, oddiy RAG
 - [x] **7-8 hafta:** Recursive chunking, score threshold, ko'p hujjatli RAG, source citation, production-ready Docs Assistant
+- [x] **9-10 hafta:** FastAPI, streaming response (SSE), chat history (SQLite), background jobs (BackgroundTasks + Celery)
 
 ## 🔭 Keyingi Qadamlar (Ixtiyoriy Kengaytirish)
 
