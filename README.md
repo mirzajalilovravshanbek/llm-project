@@ -28,10 +28,11 @@ llm-project/
 ├── company_knowledge_bot.py     # [7-8 hafta] Production-ready RAG app (recursive chunking,
 |                                 #             score threshold, ko'p hujjat, chat history)
 │
-├── chat_core.py                 # [9-10 hafta] Umumiy modul: SQLite tarix + Claude API (oddiy/stream)
-├── chat_api.py                  # [9-10 hafta] FastAPI: /chat, /chat/stream, sessiyalar, Celery
-├── celery_worker.py             # [9-10 hafta] Background job: suhbatni xulosalash
-└── test_client.py               # [9-10 hafta] Terminal orqali streaming API'ni sinash
+├──chat_api/
+│      ├── chat_core.py                 # [9-10 hafta] Umumiy modul: SQLite tarix + Claude API (oddiy/stream)
+│      ├── chat_api.py                  # [9-10 hafta] FastAPI: /chat, /chat/stream, sessiyalar, Celery
+│      ├── celery_worker.py             # [9-10 hafta] Background job: suhbatni xulosalash
+│      └── test_client.py               # [9-10 hafta] Terminal orqali streaming API'ni sinash
 ```
 
 ---
