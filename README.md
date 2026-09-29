@@ -1,4 +1,4 @@
-# LLM/AI Internship — 1–8 Hafta Loyihasi
+# LLM/AI Internship — 1–10 Hafta Loyihasi
 
 Ushbu repository Claude (Anthropic) API asosida LLM fundamentals'dan to'liq RAG (Retrieval-Augmented Generation) tizimigacha bo'lgan 2 oylik internship dasturi davomida yaratilgan skriptlarni o'z ichiga oladi.
 
