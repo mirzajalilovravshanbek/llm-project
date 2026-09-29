@@ -6,12 +6,12 @@ chat.db
 *.db
 
 # Celery fayl tizimi navbati
-celery_data/
+chat_api/celery_data/
 
 # RAG/Vector DB indekslari
-chroma_db/
-knowledge_db/
-rag_index/
+rag/chroma_db/
+rag/knowledge_db/
+rag/rag_index/
 
 # Python
 __pycache__/
