@@ -1,4 +1,23 @@
+# Environment
 .env
+
+# Ma'lumotlar bazasi
+chat.db
+*.db
+
+# Celery fayl tizimi navbati
+celery_data/
+
+# RAG/Vector DB indekslari
+chroma_db/
+knowledge_db/
+rag_index/
+
+# Python
 __pycache__/
-chat_api/__pycache__/
-chat_api/chat.db
+*.pyc
+venv/
+.venv/
+
+# Natija fayllari
+review_analysis_results.json

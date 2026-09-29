@@ -3,7 +3,7 @@
 #   - suhbat tarixi bilan ishlaydi (SQLite, session_id orqali)
 #   - streaming response (SSE) qo'llab-quvvatlaydi
 #   - BackgroundTasks: suhbat sarlavhasini avtomatik yaratish
-#   - Celery + Redis: suhbatni xulosalash (og'ir vazifa, alohida worker'da)
+#   - Celery: suhbatni xulosalash (og'ir vazifa, alohida worker'da; Redis ixtiyoriy)
 #
 # Ishga tushirish:
 #   uvicorn chat_api:app --reload
@@ -102,13 +102,13 @@ def _generate_title(session_id, first_message):
 def _get_celery():
     """Celery ixtiyoriy — o'rnatilmagan bo'lsa, tushunarli xato beradi."""
     try:
-        from celery_worker import celery_app, redis_available, summarize_session
+        from celery_worker import broker_available, celery_app, summarize_session
     except ImportError:
         raise HTTPException(
             status_code=503,
-            detail="Celery o'rnatilmagan. O'rnating: pip install celery redis",
+            detail="Celery o'rnatilmagan. O'rnating: pip install celery",
         )
-    return celery_app, summarize_session, redis_available
+    return celery_app, summarize_session, broker_available
 
 
 # ---------------------------------------------------------------------------
@@ -214,11 +214,11 @@ def summarize(session_id: str = Path(..., pattern=SESSION_ID_PATTERN)):
     if not core.get_session(session_id):
         raise HTTPException(status_code=404, detail="Sessiya topilmadi")
 
-    _, summarize_session, redis_available = _get_celery()
+    _, summarize_session, broker_available = _get_celery()
 
-    # Redis o'chiq bo'lsa, Celery ~20 soniya qayta urinadi — shuning uchun oldindan tez tekshiramiz
-    if not redis_available():
-        raise HTTPException(status_code=503, detail="Redis'ga ulanib bo'lmadi. Redis ishlayaptimi?")
+    # Broker (Redis) o'chiq bo'lsa, Celery ~20 soniya qayta urinadi — shuning uchun oldindan tez tekshiramiz
+    if not broker_available():
+        raise HTTPException(status_code=503, detail="Celery broker'iga ulanib bo'lmadi (Redis ishlayaptimi?)")
 
     try:
         task = summarize_session.delay(session_id)
@@ -244,6 +244,6 @@ def task_status(task_id: str = Path(..., pattern=r"^[A-Za-z0-9-]{1,64}$")):
     except Exception as e:
         raise HTTPException(
             status_code=503,
-            detail=f"Redis'ga ulanib bo'lmadi ({type(e).__name__})",
+            detail=f"Celery natija ombori bilan aloqa yo'q ({type(e).__name__})",
         )
     return payload
