@@ -21,3 +21,7 @@ venv/
 
 # Natija fayllari
 review_analysis_results.json
+
+# Support chat
+support_chatbot/logs/
+support_chatbot/support_kb/

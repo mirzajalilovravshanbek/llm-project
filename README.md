@@ -1,6 +1,6 @@
-# LLM/AI Internship — 1–10 Hafta Loyihasi
+# LLM/AI Internship — 1–12 Hafta Loyihasi
 
-Ushbu repository Claude (Anthropic) API asosida LLM fundamentals'dan to'liq RAG (Retrieval-Augmented Generation) tizimigacha bo'lgan 2 oylik internship dasturi davomida yaratilgan skriptlarni o'z ichiga oladi.
+Ushbu repository Claude (Anthropic) API asosida LLM fundamentals'dan to'liq RAG (Retrieval-Augmented Generation) tizimigacha bo'lgan 3 oylik internship dasturi davomida yaratilgan skriptlarni o'z ichiga oladi.
 
 Barcha skriptlar `urllib` (Python standart kutubxonasi) orqali Anthropic API'ga murojaat qiladi — `anthropic` SDK ataylab ishlatilmagan, chunki ba'zi Windows kompyuterlarida `pydantic_core` bilan bog'liq DLL import xatolari uchraydi. Bu yondashuv o'sha muammoni butunlay chetlab o'tadi.
 
@@ -34,6 +34,14 @@ llm-project/
 │  ├── chat_api.py                  # [9-10 hafta] FastAPI: /chat, /chat/stream, sessiyalar, Celery
 │  ├── celery_worker.py             # [9-10 hafta] Background job: suhbatni xulosalash
 │  └── test_client.py               # [9-10 hafta] Terminal orqali streaming API'ni sinash
+│
+└── support_chatbot/             # [11-12 hafta] — alohida papka, 🏁 FINAL PROJECT
+    ├── chat_core.py               # (nusxa — support_chatbot mustaqil ishlashi uchun)
+    ├── cache_layer.py             # Kesh (SQLite, Redis'ga oson o'tish imkoniyati bilan)
+    ├── cost_tracker.py            # Token/xarajat hisoblash va statistika
+    ├── prompts.py                 # Versiyalangan system promptlar (v1, v2, ...)
+    ├── observability.py           # JSON loglash, Timer, feedback (👍/👎)
+    └── support_chatbot.py         # AI Support Chatbot (RAG bilan) — hammasini birlashtiradi
 ```
 
 ---
@@ -298,6 +306,82 @@ Buyruqlar: `/new` (yangi suhbat), `/history`, `/sessions`, `/exit`. Streaming ja
  
 ---
 
+## 11–12 Hafta: Production va Optimization (Final Project)
+ 
+**Mavzular:** Caching (Redis), cost optimization (token usage), prompt versioning, logging va monitoring.
+ 
+Bu — internship dasturining **yakuniy bosqichi**: modelni chaqirishdan "productga aylantirish"ga o'tish.
+ 
+### `cache_layer.py` — Caching
+ 
+Savol+kontekst+system prompt bir xil bo'lsa, Claude API **umuman chaqirilmaydi** — javob SQLite keshdan qaytadi (0 xarajat, millisekundlarda). Kalit — barcha muhim parametrlarning (system, messages, model) hash'i, shuning uchun birontasi o'zgarsa eski javob qaytarilmaydi.
+ 
+| `.env`da `REDIS_URL` | Rejim |
+|---|---|
+| Yo'q (default) | SQLite fayl (`cache.db`) — Redis/Docker shart emas |
+| Bor | Redis (production, ko'p server uchun) |
+ 
+### `cost_tracker.py` — Cost Optimization
+ 
+Har bir so'rovning **input/output token** soni va dollar xarajati SQLite'ga yoziladi. Kesh orqali kelgan javoblar uchun `cost = 0`, lekin **qancha token tejalganini** ham alohida hisoblaydi:
+ 
+```json
+{
+  "billed_input_tokens": 924,      // haqiqatan Claude'ga yuborilgan (to'langan)
+  "billed_output_tokens": 154,
+  "tokens_saved_by_cache": 1078,   // kesh tufayli API'ga umuman yuborilmagan
+  "cache_hit_rate": 0.5
+}
+```
+ 
+### `prompts.py` — Prompt Versioning
+ 
+System promptlar kodga "qattiq yozilmaydi" — har biri **nom + versiya** bilan saqlanadi (`support_chatbot` → `v1`, `v2`, ...). Har bir so'rov logida qaysi versiya ishlatilgani yoziladi, shuning uchun "v2'dan keyin javoblar yomonlashdimi?" kabi savollarga aniq javob topish mumkin.
+ 
+### `observability.py` — Logging va Monitoring
+ 
+- **Strukturali JSON log** (`logs/events.jsonl`) — har bir so'rov: latency, cost, cache_hit, prompt_version
+- **Feedback tizimi** (👍/👎) — foydalanuvchi javobni yomon deb belgilasa, `interaction_id` orqali yoziladi (**noto'g'ri javoblarni boshqarish**ning amaliy ko'rinishi)
+### `support_chatbot.py` — 🏁 FINAL PROJECT: AI Support Chatbot (RAG bilan)
+ 
+Barcha internship davomida qurilgan qatlamlarni birlashtiradi: **RAG** (7-8 hafta) + **FastAPI** (9-10 hafta) + **caching, cost tracking, prompt versioning, monitoring** (11-12 hafta).
+ 
+```bash
+cd support_chatbot
+pip install fastapi uvicorn chromadb sentence-transformers pypdf python-dotenv
+uvicorn support_chatbot:app --reload
+```
+ 
+**Endpointlar:**
+ 
+| Endpoint | Vazifasi |
+|---|---|
+| `POST /ask` | Savol berish — kesh tekshiradi → RAG qidiradi → versiyalangan prompt bilan Claude'ga yuboradi → cost/latency loglaydi |
+| `POST /feedback` | Javobni baholash (`up`/`down`) |
+| `POST /documents?file_path=...` | Bilim bazasiga hujjat qo'shish |
+| `GET /metrics` | Umumiy statistika: xarajat, kesh samaradorligi, feedback |
+| `GET /metrics/negative-feedback` | Yomon baholangan javoblar ro'yxati |
+ 
+**Sinovda tasdiqlangan xatti-harakat:**
+ 
+| Sinov | Natija |
+|---|---|
+| Bir xil savol 2 marta | 2-chisida Claude API **chaqirilmadi**, `cost` o'zgarmadi |
+| Kontekst topilmagan savol | `grounded: false` — hallucination guard ishladi |
+| `/feedback` | `/metrics`da `thumbs_down` sifatida ko'rindi |
+| Real foydalanishda (924 input / 154 output token) | Xarajat aniq hisoblandi: `$0.0051`, kesh 2-so'rovda uni `$0`ga tushirdi |
+ 
+### AI Engineer Mindset — Bu Loyihada Qanday Ko'rinadi
+ 
+| Tamoyil | Qayerda amalga oshirilgan |
+|---|---|
+| Modelni productga aylantirish | `/ask` shunchaki Claude chaqirmaydi — kesh → RAG → versiyalangan prompt → log, hammasi bitta oqimda |
+| Noto'g'ri javoblarni boshqarish | `grounded: false` (hallucination guard, 7-8 haftadan) + `/feedback` (inson-fikri loop) |
+| Cost va latency hisobi | Har so'rovda `retrieval_ms`, `generation_ms`, `input_tokens`, `output_tokens`, `cost` alohida o'lchanadi |
+| Scale haqida o'ylash | Kesh — server/API yukini kamaytiradi; fayl tizimi → Redis'ga o'tish bitta parametr bilan mumkin |
+ 
+---
+
 ## ❗ Tez-tez Uchraydigan Xatolar (Barcha Haftalar Bo'yicha)
 
 | Xato | Sabab | Yechim |
@@ -313,6 +397,8 @@ Buyruqlar: `/new` (yangi suhbat), `/history`, `/sessions`, `/exit`. Streaming ja
 | `ImportError: pywintypes` (Celery) | Windows fayl tizimi broker'i `pywin32` talab qiladi | `pip install pywin32` |
 | Celery: `Port could not be cast to integer` | Windows yo'li (`E:\...`) `file://` bilan noto'g'ri birlashtirilgan | `pathlib.Path().as_uri()` ishlatilgan (tuzatilgan) |
 | `docker: 500 Internal Server Error` | Docker Desktop o'rnatilmagan/ishlamayapti | Kerak emas — `celery_worker.py` fayl tizimi broker'ini default qiladi |
+| `/metrics`da token soni kutilganidan katta (masalan 2x) | `total_input_tokens` kesh urishlarini ham qamraydi (tejamni ko'rsatish uchun) | `billed_input_tokens` / `tokens_saved_by_cache` maydonlariga qarang — aniqroq |
+| `/metrics` eski/nomuvofiq ko'rinadi | `cache.db` va `usage.db` boshqa-boshqa `cwd`dan yaratilgan | Serverni doim **bitta papkadan** ishga tushiring |
 
 ---
 
@@ -323,6 +409,18 @@ Buyruqlar: `/new` (yangi suhbat), `/history`, `/sessions`, `/exit`. Streaming ja
 - [x] **5-6 hafta:** Embedding (local, sentence-transformers), similarity search, FAISS va Chroma bilan vector DB, oddiy RAG
 - [x] **7-8 hafta:** Recursive chunking, score threshold, ko'p hujjatli RAG, source citation, production-ready Docs Assistant
 - [x] **9-10 hafta:** FastAPI, streaming response (SSE), chat history (SQLite), background jobs (BackgroundTasks + Celery)
+- [x] **11-12 hafta:** Caching, cost optimization, prompt versioning, logging/monitoring — **Final Project: AI Support Chatbot** (barcha 12 haftalik bilim birlashtirilgan holda)
+
+## 🎓 Internship Dasturi Yakunlandi
+ 
+12 hafta davomida quyidagi yo'l bosildi:
+ 
+```
+LLM API chaqiruvi  →  Prompt engineering  →  RAG (bilim bazasi)  →
+Backend/API (FastAPI, streaming)  →  Production (cache, cost, monitoring)
+```
+ 
+**Yakuniy natija (`support_chatbot.py`):** haqiqiy foydalanuvchi savoliga hujjat asosida javob beradigan, xarajatini nazorat qiluvchi, xato javoblarni kuzatuvchi va ishlashi o'lchanadigan **to'liq AI mahsulot**.
 
 ## 🔭 Keyingi Qadamlar (Ixtiyoriy Kengaytirish)
 
@@ -332,6 +430,9 @@ Buyruqlar: `/new` (yangi suhbat), `/history`, `/sessions`, `/exit`. Streaming ja
 - [ ] LangChain/LlamaIndex'ga real o'tish (production loyihada)
 - [ ] Web interfeys (Streamlit/FastAPI) orqali Company Knowledge Bot'ni deploy qilish
 - [ ] Unit testlar (`pytest`) — `chunk_recursive()`, `validate_output()`, `extract_json()` uchun
+- [ ] Deploy: Docker konteynerlashtirish, cloud (AWS/GCP/Render) ga chiqarish
+- [ ] `/metrics`ni Grafana/Prometheus kabi vizual dashboard'ga ulash
+- [ ] Semantic caching (bir xil emas, balki **o'xshash** savollarni ham keshdan javoblash)
 
 ## 📚 Foydali Havolalar
 
